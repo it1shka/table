@@ -22,8 +22,8 @@ const Punctuation = [
 
 // all the operators
 const Operators = [
-    '=', 'or', 'and', '==', '!=', '<', '>', '<=', 
-    '>=', '\\+', '\\-', '\\*', '/', 'mod', 'not'
+    'or', 'and', '==', '=', '!=', '<=', 
+    '>=', '<', '>', '\\+', '\\-', '\\*', '/', 'mod', 'not'
 ]
 
 // the pattern object containing multiple 

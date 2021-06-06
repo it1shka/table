@@ -2,6 +2,7 @@ import { Token } from "./lexer";
 import { BINARY_OPERATOR, EXPRESSION, EXPRESSION_STATEMENT, IF, LET, LOOP, OUTPUT, PRIMARY, PROGRAM, STATEMENT } from "./nodes";
 import type {NodeEntry} from './nodes'
 
+
 function format(token: Token | undefined): string {
     return token ? `${token.type} "${token.span}" (line ${token.line}, col ${token.column})` : 'EOF'
 }
@@ -233,7 +234,7 @@ export class Parser {
             }
 
             default: 
-            throw `expected identifier or number, found ${format(this.buffer.next())}`
+            throw `expected identifier or number while parsing primary expression, found ${format(this.buffer.next())}`
         }
     }
 
