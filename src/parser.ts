@@ -1,5 +1,10 @@
 import { Token } from "./lexer";
 import { BINARY_OPERATOR, EXPRESSION, EXPRESSION_STATEMENT, IF, LET, LOOP, OUTPUT, PRIMARY, PROGRAM, STATEMENT } from "./nodes";
+import type {NodeEntry} from './nodes'
+
+function format(token: Token | undefined): string {
+    return token ? `${token.type} "${token.span}" (line ${token.line}, col ${token.column})` : 'EOF'
+}
 
 class TokenBuffer {
     constructor(private tokens: Token[]) {}
@@ -24,27 +29,27 @@ class TokenBuffer {
         return this.peek()?.span
     }
 
-    public peek_pos(): {line: number, column: number} {
+    public peek_pos(): NodeEntry {
         let pos
         if( (pos = this.peek()) !== undefined) {
             const {line, column} = pos
             return {line, column}
         }
-        throw `Parser error: unexpected EOF while parsing`
+        throw `unexpected EOF while parsing`
     }
 
-    public exclude_pos(): {line: number, column: number} {
+    public exclude_pos(): NodeEntry {
         if(this.peek() !== undefined) {
             const {line, column} = this.next() as Token
             return {line, column}
         }
-        throw `Parser error: unexpected EOF while parsing`
+        throw `unexpected EOF while parsing`
     }
 
     public required(span: string): void {
         let next
         if( (next = this.next())?.span !== span)
-            throw `Parser error: expected token be equal to "${span}", found ${next}`
+            throw `expected token be equal to "${span}", found ${format(next)}`
     }
 
     public maybe(span: string): boolean {
@@ -64,12 +69,17 @@ export class Parser {
     }
 
     public parse_program(): PROGRAM {
-        const statements: STATEMENT[] = []
-        while(!this.buffer.eof()) {
-            const statement = this.parse_statement()
-            statements.push(statement)
+        try {
+            const statements: STATEMENT[] = []
+            while(!this.buffer.eof()) {
+                const statement = this.parse_statement()
+                statements.push(statement)
+            }
+            return statements
         }
-        return statements
+        catch(e) {
+            throw `Parser error:\n${e}`
+        }
     }
 
     private parse_statement(): STATEMENT {
@@ -84,47 +94,68 @@ export class Parser {
 
     private parse_if(): IF {
         const pos = this.buffer.exclude_pos()
-        const condition = this.parse_expression()
-        const body = this.parse_statement_list()
-        let else_body
-        if(this.buffer.maybe('else'))
-            else_body = this.parse_statement_list()
-        return IF(condition, body, else_body, pos)
+        try {
+            const condition = this.parse_expression()
+            const body = this.parse_statement_list()
+            let else_body
+            if(this.buffer.maybe('else'))
+                else_body = this.parse_statement_list()
+            return IF(condition, body, else_body, pos)
+        } catch(e) {
+            throw `while parsing if statement at line ${pos.line}, at column ${pos.column}\n${e}`
+        }
     }
 
     private parse_loop(): LOOP {
         const pos = this.buffer.exclude_pos()
-        const condition = this.parse_expression()
-        const body = this.parse_statement_list()
-        return LOOP(condition, body, pos)
+        try {
+            const condition = this.parse_expression()
+            const body = this.parse_statement_list()
+            return LOOP(condition, body, pos)
+        } catch(e) {
+            throw `while parsing loop statement at line ${pos.line}, at column ${pos.column}\n${e}`
+        }
     }
 
     private parse_let(): LET {
         const pos = this.buffer.exclude_pos()
-        if(this.buffer.peek_type() !== 'identifier') {
-            throw `Parser error: expected identifier, found ${this.buffer.next()}`
+        try {
+            if(this.buffer.peek_type() !== 'identifier') {
+                throw `expected identifier not ${format(this.buffer.next())} at ${pos.line}, at column ${pos.column}`
+            }
+            const identifier = this.buffer.next()?.span as string
+            let initial_value
+            if(this.buffer.maybe('=')) {
+                initial_value = this.parse_expression()
+            }
+            this.buffer.required(';')
+            return LET(identifier, initial_value, pos)
+        } catch(e) {
+            throw `while parsing let statement at line ${pos.line}, at column ${pos.column}\n${e}`
         }
-        const identifier = this.buffer.next()?.span as string
-        let initial_value
-        if(this.buffer.maybe('=')) {
-            initial_value = this.parse_expression()
-        }
-        this.buffer.required(';')
-        return LET(identifier, initial_value, pos)
     }
 
     private parse_output(): OUTPUT {
         const pos = this.buffer.exclude_pos()
-        const expression = this.parse_expression()
-        this.buffer.required(';')
-        return OUTPUT(expression, pos)
+        try {
+            const expression = this.parse_expression()
+            this.buffer.required(';')
+            return OUTPUT(expression, pos)
+        }
+        catch(e) {
+            throw `while parsing output statement at line ${pos.line}, at column ${pos.column}\n${e}`
+        }
     }
 
     private parse_expression_statement(): EXPRESSION_STATEMENT {
         const pos = this.buffer.peek_pos()
-        const expression = this.parse_expression()
-        this.buffer.required(';')
-        return EXPRESSION_STATEMENT(expression, pos)
+        try {
+            const expression = this.parse_expression()
+            this.buffer.required(';')
+            return EXPRESSION_STATEMENT(expression, pos)
+        } catch(e) {
+            throw `while parsing expression at line ${pos.line}, at column ${pos.column}\n${e}`
+        }
     }
 
     private parse_statement_list(): STATEMENT[] {
@@ -142,7 +173,7 @@ export class Parser {
         let result = this.parse_or()
         if(this.buffer.maybe('=')) {
             if(result.type !== 'variable') 
-            throw `Parser error: expected identifier in assignment, found ${result}`
+                throw `expected identifier in assignment, found ${result.type} node`
             const right = this.parse_expression()
             result = {
                 type: 'binary',
@@ -202,7 +233,7 @@ export class Parser {
             }
 
             default: 
-            throw `Parser error: expected identifier or number, found ${this.buffer.next()}`
+            throw `expected identifier or number, found ${format(this.buffer.next())}`
         }
     }
 

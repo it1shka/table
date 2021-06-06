@@ -18,7 +18,7 @@ export type STATEMENT =
 // token (the first token in the node)
 // or, simply, position of the node
 
-interface NodeEntry {
+export interface NodeEntry {
     line: number
     column: number
 }
