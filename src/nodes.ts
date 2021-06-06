@@ -9,8 +9,19 @@ export type STATEMENT =
     | IF 
     | LOOP 
     | LET 
+    | OUTPUT
     | EXPRESSION
-    | OUTPUT 
+
+// each of STATEMENT nodes will
+// be provided with additional information 
+// about the position of the entry 
+// token (the first token in the node)
+// or, simply, position of the node
+
+interface NodeEntry {
+    line: number
+    column: number
+}
 
 export type IF = 
     | {
@@ -18,27 +29,27 @@ export type IF =
         condition: EXPRESSION
         body: STATEMENT[]
         else?: STATEMENT[]
-    }
+    } & NodeEntry
 
 export type LOOP = 
     | {
         type: 'loop'
         condition: EXPRESSION
         body: STATEMENT[]
-    }
+    } & NodeEntry
 
 export type LET = 
     | {
         type: 'let'
         identifier: string
         initial_value: EXPRESSION
-    }
+    } & NodeEntry
 
 export type OUTPUT = 
     | {
         type: 'output'
         expression: EXPRESSION
-    }
+    } & NodeEntry
 
 export type EXPRESSION = 
     | BINARY 
@@ -106,61 +117,6 @@ export type VARIABLE =
         identifier: string
     }
 
-/*
-interface Position {
-    line: number
-    column: number
-}
-*/
+// functions for creating AST nodes 
 
-// and here I want to create
-// multiple functions 
-// to create nodes conveniently
-
-// one function 
-// per each node type
-
-export function IF(
-    condition: EXPRESSION,
-    body: STATEMENT[],
-    else_body?: STATEMENT[]
-): IF {
-    return {
-        type: 'if',
-        condition,
-        body,
-        else: else_body
-    }
-}
-
-export function LOOP(
-    condition: EXPRESSION,
-    body: STATEMENT[]
-): LOOP {
-    return {
-        type: 'loop',
-        condition,
-        body
-    }
-}
-
-export function LET (
-    identifier: string,
-    initial_value: EXPRESSION
-): LET {
-    return {
-        type: 'let',
-        identifier,
-        initial_value
-    }
-}
-
-export function OUTPUT (
-    expression: EXPRESSION
-): OUTPUT {
-    return {
-        type: 'output',
-        expression
-    }
-}
-
+export function 
