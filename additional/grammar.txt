@@ -1,0 +1,41 @@
+program:
+    statement*
+
+statement:
+    '@' one_line_comment
+    'if' expression '{' statement* '}' ('else' '{' statement* '}')?
+    'loop' expression '{' statement* '}'
+    'let' identifier '=' expression ';'
+    expression ';'
+    'output' expression ';'
+
+expression:
+    assign_expr
+
+assign_expr:
+    or_expr '=' assign_expr
+
+or_expr:
+    and_expr 'or' and_expr
+
+and_expr:
+    equal_expr 'and' equal_expr
+
+equal_expr:
+    comp_expr ('==' | '!=') comp_expr
+
+comp_expr:
+    plus_expr ('<' | '>' | '<=' | '>=') plus_expr
+
+plus_expr:
+    mult_expr ('+' | '-') mult_expr
+
+mult_expr:
+    prim_expr ('*' | '/' | 'mod') prim_expr
+
+prim_expr:
+    '-' prim_expr
+    'not' prim_expr
+    '(' expression ')'
+    identifier
+    number    
