@@ -10,7 +10,7 @@ export type STATEMENT =
     | LOOP 
     | LET 
     | OUTPUT
-    | EXPRESSION
+    | EXPRESSION_STATEMENT
 
 // each of STATEMENT nodes will
 // be provided with additional information 
@@ -22,6 +22,8 @@ interface NodeEntry {
     line: number
     column: number
 }
+
+// STATEMENT nodes
 
 export type IF = 
     | {
@@ -42,7 +44,7 @@ export type LET =
     | {
         type: 'let'
         identifier: string
-        initial_value: EXPRESSION
+        initial_value?: EXPRESSION
     } & NodeEntry
 
 export type OUTPUT = 
@@ -50,6 +52,14 @@ export type OUTPUT =
         type: 'output'
         expression: EXPRESSION
     } & NodeEntry
+
+export type EXPRESSION_STATEMENT = 
+    | {
+        type: 'expression-statement'
+        expression: EXPRESSION
+    } & NodeEntry
+
+// EXPRESSION nodes
 
 export type EXPRESSION = 
     | BINARY 
@@ -119,4 +129,65 @@ export type VARIABLE =
 
 // functions for creating AST nodes 
 
-export function 
+export function IF(
+    condition: EXPRESSION,
+    body: STATEMENT[],
+    else_body: STATEMENT[] | undefined,
+    pos: NodeEntry
+): IF {
+    return {
+        type: 'if',
+        condition,
+        body,
+        else: else_body,
+        ...pos
+    }
+}
+
+export function LOOP (
+    condition: EXPRESSION,
+    body: STATEMENT[],
+    pos: NodeEntry
+): LOOP {
+    return {
+        type: 'loop',
+        condition,
+        body,
+        ...pos
+    }
+}
+
+export function LET (
+    identifier: string,
+    initial_value: EXPRESSION | undefined,
+    pos: NodeEntry
+): LET {
+    return {
+        type: 'let',
+        identifier,
+        initial_value,
+        ...pos
+    }
+}
+
+export function OUTPUT (
+    expression: EXPRESSION,
+    pos: NodeEntry
+): OUTPUT {
+    return {
+        type: 'output',
+        expression,
+        ...pos
+    }
+}
+
+export function EXPRESSION_STATEMENT(
+    expression: EXPRESSION,
+    pos: NodeEntry
+): EXPRESSION_STATEMENT {
+    return {
+        type: 'expression-statement',
+        expression,
+        ...pos
+    }
+}

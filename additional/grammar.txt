@@ -5,7 +5,7 @@ statement:
     '@' one_line_comment
     'if' expression '{' statement* '}' ('else' '{' statement* '}')?
     'loop' expression '{' statement* '}'
-    'let' identifier '=' expression ';'
+    'let' identifier ('=' expression)? ';'
     expression ';'
     'output' expression ';'
 

@@ -1,16 +1,13 @@
 import {Lexer} from './lexer'
+import {Parser} from './parser'
 
 const program = `
 #this is a comment
-    let a = 5;
-    let b = 5;
-    output a / b;
-
-    loop a > b {
-        output dick;
-    }
+loop else
 #this is also
 #`
 
 const tokens = new Lexer(program).tokenize()
-console.log(tokens)
+const ast = new Parser(tokens).parse_program()
+
+console.log(ast)
