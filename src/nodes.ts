@@ -118,7 +118,7 @@ export type VALUE =
 export type NUMBER = 
     | {
         type: 'number'
-        value: string
+        value: number
     }
 
 export type VARIABLE = 

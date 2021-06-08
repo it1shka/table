@@ -1,7 +1,8 @@
+import fs from 'fs'
 import {Lexer} from './lexer'
 import {Parser} from './parser'
-
-import fs from 'fs'
+import {Analyzer} from './analyzer'
+import {Interpreter} from './interpreter'
 
 function run_test_program(): void {
 
@@ -20,9 +21,17 @@ export default function run_code(program: string) {
         const tokens = lexer.tokenize()
         const parser = new Parser(tokens)
         const ast = parser.parse_program()
-        return JSON.stringify(ast, null, 4)
-    } catch(e) {
-        return String(e)
+        Analyzer(ast)
+        const interpreter = new Interpreter
+        interpreter.run(ast)
+        return JSON.stringify({
+            status: 'success'
+        })
+    } catch(err) {
+        return JSON.stringify({
+            status: 'error',
+            info: err
+        })
     }
 }
 

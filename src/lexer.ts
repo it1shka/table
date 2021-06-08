@@ -9,7 +9,7 @@ type TokenType =
 
 // all the language keywords
 const Keywords = [
-    'if', 'else', 'loop', 'let', 'output'
+    'if', 'else', 'loop', 'let', 'output', 'true', 'false'
 ]
 
 // all the punctuation
