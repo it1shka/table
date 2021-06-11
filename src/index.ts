@@ -3,6 +3,7 @@ import {Lexer} from './lexer'
 import {Parser} from './parser'
 import {Analyzer} from './analyzer'
 import {Interpreter} from './interpreter'
+import {Compiler} from './emitter'
 
 function run_test_program(): void {
 
@@ -22,8 +23,16 @@ export default function run_code(program: string) {
         const parser = new Parser(tokens)
         const ast = parser.parse_program()
         Analyzer(ast)
-        const interpreter = new Interpreter
-        interpreter.run(ast)
+
+        const compiler = new Compiler(ast)
+        const binary = compiler.compile()
+        const wasm_module = new WebAssembly.Module(binary)
+        const instance = new WebAssembly.Instance(wasm_module, {
+            env: {
+                output: console.log
+            }
+        })
+        
         return JSON.stringify({
             status: 'success'
         })

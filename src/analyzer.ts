@@ -1,5 +1,9 @@
 import { EXPRESSION, PROGRAM, STATEMENT } from "./nodes";
 
+// subclass for analyzer
+// it helps to keep track of 
+// all the variables initialized in 
+// the scope analyzer checks
 class AnalyzerScope {
     private variables: Set<string> = new Set
 
@@ -20,7 +24,7 @@ class AnalyzerScope {
     }
 }
 
-// making sure all the variables are used after the initialization
+// Analyzer makes sure all the variables are initialized before their usage
 export function Analyzer(program: PROGRAM): void {
 
     function analyze_statement_list(list: STATEMENT[], scope: AnalyzerScope): void {
