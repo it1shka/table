@@ -1,13 +1,37 @@
+import fs from 'fs'
 import bn from 'binaryen'
 import { BINARY, BINARY_OPERATOR, EXPRESSION, PROGRAM, STATEMENT, UNARY_OPERATION, UNARY_OPERATOR, VARIABLE } from './nodes'
 
+// precompiler counts the total of variables
+// as well as gives each variable an index (0, 1, etc.)
+// it is essential for compilation process
+// precompiler works recursively
 function Precompiler(program: PROGRAM) {
     const map: Map<string, number> = new Map
     let last_index = 0
-    program.forEach(statement => {
-        if(statement.type === 'let')
-            map.set(statement.identifier, last_index++)
-    })
+
+    const visit_list = (list: STATEMENT[]): void => {
+        list.forEach(statement => {
+            switch(statement.type) {
+                case 'let':
+                    map.set(statement.identifier, last_index++)
+                break
+
+                case 'if':
+                    visit_list(statement.body)
+                    if(statement.else) 
+                        visit_list(statement.else)
+                break
+
+                case 'loop':
+                    visit_list(statement.body)
+                break
+            }
+        })
+    }
+
+    visit_list(program)
+
     return {
         amount: last_index,
         variables: map
@@ -21,6 +45,13 @@ type BinaryOperation = (left: number, right: number) => number
 
 type UnaryOperation = (num: number) => number
 
+// compiler recursively compiles each program node
+// using compiler toolchain 'binaryen.js'
+// my language doesn't have a type system
+// so all expression cast to f64 type
+// and all the control flow constructions 
+// cast expressions to i32 (boolean) type
+// using imported JS functions 'float' and 'int'
 export class Compiler {
     private readonly module = new bn.Module
     private readonly variables: Map<string, number>
@@ -70,7 +101,7 @@ export class Compiler {
         this.amount = amount
     }
 
-    public compile(): Uint8Array {
+    public compile(emitWat = false): Uint8Array {
         // exporting output function
         this.module.addFunctionImport(
             'output',
@@ -112,7 +143,13 @@ export class Compiler {
         this.module.optimize()
         this.module.validate()
 
-        console.log(this.module.emitText())
+        // probably you actually wanna see the compiler output?
+        if(emitWat) {
+            console.log('WAT logging enabled')
+            const wat = this.module.emitText()
+            fs.writeFile('compiler-output.wat', wat, err => 
+                err ? console.log(`Error while logging WAT file output: ${err}`) : undefined)
+        }
 
         const compiled_binary = this.module.emitBinary()
         return compiled_binary

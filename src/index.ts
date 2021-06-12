@@ -8,7 +8,7 @@ import {Compiler} from './emitter'
 function run_test_program(): void {
     const test_program_path = 'example.txt'
     const program = fs.readFileSync(test_program_path, {encoding: 'utf-8'})
-    run_code(program, true)
+    run_code(program)
 }
 
 export default function run_code(program: string, interpr = false) {
@@ -23,7 +23,7 @@ export default function run_code(program: string, interpr = false) {
             new Interpreter().run(ast)
         else {
             const compiler = new Compiler(ast)
-            const binary = compiler.compile()
+            const binary = compiler.compile(true)
             const wasm_module = new WebAssembly.Module(binary)
             const instance = new WebAssembly.Instance(wasm_module, {
                 env: {

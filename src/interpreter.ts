@@ -1,5 +1,9 @@
 import { BINARY_OPERATOR, EXPRESSION, PROGRAM, STATEMENT, UNARY_OPERATOR, VARIABLE } from "./nodes";
 
+// stack for managing scopes with variables
+// it can enter the scope (push new scope onto the stack)
+// or leave the scope (pop the last scope from the stack)
+// as well as initialize. set and get variables
 class ScopeStack {
     private stack: Array<Map<string, number>> = /*[new Map]*/[]
     
@@ -58,6 +62,9 @@ const UnaryOperations: Record<UNARY_OPERATOR, UnaryOperation> = {
     'not': a => Number(!Boolean(a))
 }
 
+// interpreter recursively traverses and evaluates
+// each node of the program
+// it saves its state (vars) inside the ScopeStack
 export class Interpreter {
 
     private readonly stack: ScopeStack = new ScopeStack
