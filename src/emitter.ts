@@ -1,8 +1,6 @@
 import bn from 'binaryen'
 import { BINARY, BINARY_OPERATOR, EXPRESSION, PROGRAM, STATEMENT, UNARY_OPERATION, UNARY_OPERATOR, VARIABLE } from './nodes'
 
-// returns map object which contains pairs 
-// "{variable name}" : {variable index (starting from 0)}
 function Precompiler(program: PROGRAM) {
     const map: Map<string, number> = new Map
     let last_index = 0
@@ -32,21 +30,33 @@ export class Compiler {
         '!=': this.module.f64.ne,
         '*':  this.module.f64.mul,
         '+':  this.module.f64.add,
-        '-': this.module.f64.sub,
-        '/': this.module.f64.div,
-        '<': this.module.f64.lt,
-        '<=': this.module.f64.le,
-        '=': null as any as BinaryOperation,
-        '==': this.module.f64.eq,
-        '>': this.module.f64.gt,
-        '>=': this.module.f64.ge,
-        'and': this.module.i32.and,
-        'mod': this.module.i32.rem_s,
-        'or': this.module.i32.or
+        '-':  this.module.f64.sub,
+        '/':  this.module.f64.div,
+        '<':  (left: number, right: number): number => this.i2f(this.module.f64.lt(left, right)),
+        '<=': (left: number, right: number): number => this.i2f(this.module.f64.le(left, right)),
+        '=':  null as any as BinaryOperation,
+        '==': (left: number, right: number): number => this.i2f(this.module.f64.eq(left, right)),
+        '>':  (left: number, right: number): number => this.i2f(this.module.f64.gt(left, right)),
+        '>=': (left: number, right: number): number => this.i2f(this.module.f64.ge(left, right)),
+        'and':(left: number, right: number): number => {
+            const l = this.f2i(left)
+            const r = this.f2i(right)
+            return this.module.i32.and(l, r)
+        },
+        'mod':(left: number, right: number): number => {
+            const l = this.f2i(left)
+            const r = this.f2i(right)
+            return this.module.i32.rem_s(l, r)
+        },
+        'or':(left: number, right: number): number => {
+            const l = this.f2i(left)
+            const r = this.f2i(right)
+            return this.module.i32.or(l, r)
+        },
     } as const
 
     private readonly unary_operations: Record<UNARY_OPERATOR, UnaryOperation> = {
-        'not': this.module.i32.eqz,
+        'not': (num: number): number => this.module.i32.eqz(this.f2i(num)),
         '-': this.module.f64.neg
     } as const
 
@@ -69,6 +79,25 @@ export class Compiler {
             bn.createType([ bn.f64 ]),
             bn.none
         )
+        
+        // type cast functions f2i
+        this.module.addFunctionImport(
+            'int',
+            'env',
+            'int',
+            bn.createType([ bn.f64 ]),
+            bn.i32
+        )
+
+        // type cast i2f
+        this.module.addFunctionImport(
+            'float',
+            'env',
+            'float',
+            bn.createType([ bn.i32 ]),
+            bn.f64
+        )
+
         // all the code will be wrapped
         // inside 'main' function
         this.module.addFunction(
@@ -80,17 +109,28 @@ export class Compiler {
         )
         this.module.setStart(this.module.getFunction('main'))
         this.module.autoDrop()
-        //this.module.optimize()
+        this.module.optimize()
         this.module.validate()
+
+        console.log(this.module.emitText())
+
         const compiled_binary = this.module.emitBinary()
         return compiled_binary
+    }
+
+    private i2f(val: number): number {
+        return this.module.call('float', [val], bn.f64)
+    }
+
+    private f2i(val: number): number {
+        return this.module.call('int', [val], bn.i32)
     }
 
     private compile_statement(statement: STATEMENT): number {
         switch(statement.type) {
             case 'if': 
             return this.module.if(
-                this.compile_expression(statement.condition),
+                this.f2i( this.compile_expression(statement.condition) ),
                 this.compile_statement_list(statement.body),
                 statement.else ? this.compile_statement_list(statement.else) : undefined
             )
@@ -117,7 +157,7 @@ export class Compiler {
             return this.module.block('outer', [
                 this.module.loop('loop', this.module.block(no_label,[
                     this.module.br('outer', this.module.i32.eqz(
-                        this.compile_expression(statement.condition)
+                        this.f2i(this.compile_expression(statement.condition))
                     )),
                     this.compile_statement_list(statement.body),
                     this.module.br('loop')
@@ -174,12 +214,16 @@ export class Compiler {
         const op = this.binary_operations[expression.operator]
         const left = this.compile_expression(expression.left)
         const right = this.compile_expression(expression.right)
+        if(['and', 'mod', 'or'].includes(expression.operator))
+            return this.i2f(op(left, right))
         return op(left, right)
     }
 
     private compile_unary_expression(expression: UNARY_OPERATION): number {
         const op = this.unary_operations[expression.operator]
         const num = this.compile_expression(expression.expression)
+        if(['not'].includes(expression.operator)) 
+            return this.i2f(op(num))
         return op(num)
     }
 }
